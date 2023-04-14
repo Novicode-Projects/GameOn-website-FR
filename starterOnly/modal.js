@@ -1,3 +1,12 @@
+function editNav() {
+  const x = document.getElementById("myTopnav");
+  if (x.className === "topnav") {
+    x.className += "responsive";
+  } else {
+    x.className = "topnav";
+  }
+}
+
 // DOM Elements
 const modalbg = document.querySelector(".bground");
 const modalBtn = document.querySelectorAll(".modal-btn");
@@ -5,16 +14,23 @@ const formData = document.querySelectorAll(".formData");
 const closeBtn = document.querySelector(".close");
 const content = document.querySelector(".content");
 const modalBody = document.querySelector(".modal-body");
+const modalForm = document.querySelector(".modal-body>form");
 
 let GlobalFormValidate = false;
+content.style.minHeight = "766px";
+content.style.overflow = "scroll";
 
-// launch modal event
+// Disable refresh page
+modalForm.setAttribute("onsubmit", "validate(); return false;");
+
+// Launch modal event
 modalBtn.forEach((btn) => btn.addEventListener("click", launchModal));
 
-// launch modal form
+// Launch modal form
 function launchModal() {
   modalbg.style.display = "block";
 }
+
 function closeModal() {
   // GlobalFormValidate = false
   if (GlobalFormValidate == false) {
@@ -40,36 +56,35 @@ function closeModal() {
     GlobalFormValidate = false;
   }
 }
+
 // close modal event
 closeBtn.addEventListener("click", closeModal);
-
-function editNav() {
-  const x = document.getElementById("myTopnav");
-  if (x.className === "topnav") {
-    x.className += "responsive";
-  } else {
-    x.className = "topnav";
-  }
-}
 
 // Validation
 function validate() {
   // Error ?
-  //const arrayError = isValidateInput();
-
-  const isError = false;
+  const isError = validateForm();
 
   // True
-  if (isError) {
-    /*
+  if (isError.length != 0) {
+    formData.forEach((input) => {
+      input.removeAttribute("data-error");
+      input.removeAttribute("data-error-visible");
+    });
+
     isError.map((err) => {
       const [parent, errorMessage] = err;
-      //createMessage(parent, errorMessage);
-    });*/
+
+      parent.setAttribute("data-error-visible", "true");
+      createMessage(parent, errorMessage);
+    });
   }
 
   // False
   else {
+    // Reset Form Input
+    resetInput();
+
     GlobalFormValidate = true;
     modalBody.style.display = "none";
 
@@ -104,54 +119,84 @@ function validate() {
   }
 }
 
+// Create message error
 function createMessage(parentElement, errorMessage) {
-  const input = parentElement.querySelector("input");
-  const div = document.createElement("div");
-  const span = document.createElement("span");
-  span.textContent = errorMessage;
-  div.appendChild(span);
-  parentElement.dataset.error = "";
-  input.dataset.error = "";
-  parentElement.appendChild(div);
+  parentElement.dataset.error = errorMessage;
 }
 
-function removeMessage(parentElement, errorMessage) {}
-
-/*
-function isValidateInput() {
+// Validate input form
+function validateForm() {
   const arrayError = [];
 
   formData.forEach((formData) => {
+    // Input
     const input = formData.querySelector("input");
 
-
-    if ((input.name == "first" && input.value == "") || input.lenght < 2) {
+    // First name
+    if (
+      (input.name == "first" && input.value == "") ||
+      (input.name == "first" && input.value.length < 2)
+    ) {
       arrayError.push([
         formData,
         "Veuillez entrer 2 caractères ou plus pour le champ du prénom.",
       ]);
     }
 
-
-    else if ((input.name == "last" && input.value == "") || input.lenght < 2) {
+    // Last name
+    else if (
+      (input.name == "last" && input.value == "") ||
+      (input.name == "last" && input.value.length < 2)
+    ) {
       arrayError.push([
         formData,
         "Veuillez entrer 2 caractères ou plus pour le champ du nom.",
       ]);
     }
 
-
+    // Email
     else if (input.name == "email") {
-      const validRegex = `/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/`;
-
-      if (!input.value.match(validRegex)) {
+      if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(input.value)) {
         arrayError.push([formData, "Email incorrect."]);
       }
-    } else if (input.name == "birthdate") {
-      const date = new Date(input.value); // date valide + date différente du jour même
-    } else if (input.name == "quantity" && !input.checked) {
-      arrayError.push([formData, "Vous devez choisir une option."]);
-    } else if (input.name == "location" && !input.checked) {
+    }
+
+    // Birthdate
+    else if (input.name == "birthdate") {
+      const inputDate = new Date(input.value).toLocaleDateString();
+      const currentDate = new Date().toLocaleDateString();
+
+      if (input.value == "" || inputDate >= currentDate) {
+        arrayError.push([
+          formData,
+          "Vous devez entrer votre date de naissance.",
+        ]);
+      }
+    }
+
+    // Quantity
+    else if (input.name == "quantity" && isNaN(input.value)) {
+      arrayError.push([
+        formData,
+        "Pour le nombre de concours, une valeur numérique est saisie.",
+      ]);
+    }
+
+    // Radio
+    else if (input.type == "radio") {
+      const inputRadioAll = formData.querySelectorAll("input[type=radio]");
+
+      let isChecked = false;
+
+      inputRadioAll.forEach((input) => input.checked && (isChecked = true));
+
+      if (isChecked == false) {
+        arrayError.push([formData, "Vous devez choisir une option."]);
+      }
+    }
+
+    // Condition of use
+    else if (input.name == "conditionOfUse" && !input.checked) {
       arrayError.push([
         formData,
         "Vous devez vérifier que vous acceptez les termes et conditions.",
@@ -160,25 +205,24 @@ function isValidateInput() {
   });
 
   return arrayError;
-}*/
+}
 
-/* Sucess
-modalBody.textContent = "";
+// Reset input value
+function resetInput() {
+  formData.forEach((formData) => {
+    const input = formData.querySelector("input");
 
-const div = document.createElement("div");
+    // Input radio
+    if (input.type == "radio") {
+      const inputRadioAll = formData.querySelectorAll("input[type=radio]");
+      inputRadioAll.forEach(
+        (input) => input.checked && (input.checked = false),
+      );
+    }
 
-const p = document.createElement("p");
-p.textContent = "Merci pour";
-
-const p2 = document.createElement("p");
-p2.textContent = "votre inscription";
-
-const button = document.createElement("button");
-button.classList.add("btn-submit");
-button.textContent = "Fermer";
-
-div.appendChild(p);
-div.appendChild(p2);
-div.appendChild(button);
-
-modalBody.appendChild(div);*/
+    // Other input
+    else {
+      input.value = "";
+    }
+  });
+}
